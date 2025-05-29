@@ -1,0 +1,23 @@
+[theme]
+primaryColor = "#2B4865"          # Azul petróleo para botões e destaques
+backgroundColor = "#FAF9F7"       # Cor de fundo
+secondaryBackgroundColor = "#FFFFFF"  # Fundos de cards, caixas, etc
+textColor = "#1A2E4F"             # Texto principal
+font = "sans serif"
+
+#[theme]
+#base="dark"
+#primaryColor="#00FFAA"              # Verde água moderno para botões/destaques
+#backgroundColor="#0E1117"            # Quase preto para fundo (relaxa os olhos)
+#secondaryBackgroundColor="#1F222A"   # Um cinza bem escuro para caixas secundárias
+#textColor="#FAFAFA"                  # Branco suave para o texto
+#font="sans serif"                    # Limpo e fácil de ler
+
+
+#[theme]
+#base="light"
+#primaryColor="#0099FF"              # Azul chamativo
+#backgroundColor="#FFFFFF"           # Branco puro
+#secondaryBackgroundColor="#F5F5F5"  # Cinza bem clarinho para caixas
+#textColor="#262730"                 # Cinza escuro para o texto
+#font="sans serif"
