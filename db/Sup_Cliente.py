@@ -1,8 +1,10 @@
 import logging
 import os
+import sys
 from dotenv import load_dotenv
 from supabase import create_client
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class Sup_Cliente:
     _instancia = None  # Atributo de classe para armazenar a instância única
