@@ -106,21 +106,51 @@ def calcular_ano(valores):
     anos_ordenados = sorted(set(anos))
     return anos_ordenados
 
+# def calcular_mes(valores):
+#     meses = []
+#     for valor in valores:
+#         try:
+#             mes_num = int(float(valor))  # transforma 2.025 → 2
+#             if 1 <= mes_num <= 12:
+#                 meses.append(calendar.month_name[mes_num])
+#         except Exception as e:
+#             st.warning(f"Erro ao processar '{valor}': {e}")
+#
+#     meses_ordenados = sorted(set(meses), key=lambda m: list(calendar.month_name).index(m))
+#     return format_datetime(meses_ordenados, locale='pt_BR')
+
+
+# ========================================= FUNÇÕES MÓDULO ALIMENTAÇÃO ===============================================
+
 def calcular_mes(valores):
     meses = []
     for valor in valores:
         try:
-            mes_num = int(float(valor))  # transforma 2.025 → 2
+            mes_num = int(float(valor))  # transforma "2.025" → 2
             if 1 <= mes_num <= 12:
-                meses.append(calendar.month_name[mes_num])
+                # Cria uma data fictícia no mês correspondente (dia 1, ano 2000)
+                data = date(2000, mes_num, 1)
+                # Formata o nome do mês em português
+                nome_mes = format_date(data, format='MMMM', locale='pt_BR')
+                meses.append(nome_mes.capitalize())
         except Exception as e:
             st.warning(f"Erro ao processar '{valor}': {e}")
 
-    meses_ordenados = sorted(set(meses), key=lambda m: list(calendar.month_name).index(m))
-    return format_datetime(meses_ordenados, locale='pt_BR')
+    # Remove duplicados e ordena pelo número do mês (não pelo nome)
+    meses_ordenados = sorted(set(meses), key=lambda m: _ordem_mes(m))
+    return meses_ordenados
 
+# Função auxiliar para garantir a ordem correta dos meses em português
+def _ordem_mes(mes_nome):
+    ordem = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ]
+    try:
+        return ordem.index(mes_nome)
+    except ValueError:
+        return 13  # Se o mês não for encontrado, coloca no final
 
-# ========================================= FUNÇÕES MÓDULO ALIMENTAÇÃO ===============================================
 
 def carregar_select_box(modulo, coluna):
     df = carregar_dados(modulo)
