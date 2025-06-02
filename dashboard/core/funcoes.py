@@ -13,15 +13,12 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from db.Sup_Cliente import Sup_Cliente
 from io import BytesIO
 from datetime import date
+from babel.dates import format_date
+from datetime import date
 
+format_date(date.today(), format='long', locale='pt_BR')
 
 supabase = Sup_Cliente()
-try:
-    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-except locale.Error:
-    locale.setlocale(locale.LC_TIME, '')
-
-
 salario_minimo = 1518.0
 
 categorias_corretas = {
