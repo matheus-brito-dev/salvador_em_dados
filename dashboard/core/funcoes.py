@@ -73,6 +73,11 @@ meses_map = {
     "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
 }
 
+meses_pt = [
+    "Janeiro", "Fevereiro", "Março", "Abril",
+    "Maio","Junho", "Julho", "Agosto",
+    "Setembro", "Outubro", "Novembro", "Dezembro"
+]
 def rodape():
     st.subheader('Direitos Autorais')
     st.write('Todos os Direitos Reservados ©2025 - Prof. Matheus Brito de Oliveira')
@@ -244,13 +249,13 @@ def calcular_custo_cesta_evolucao():
 
 def calcular_custo_cesta_basica(mes_nome, retornar_df=False):
     df = carregar_dados("cestas")
-    st.write(mes_nome)
+
     # Garantir que o mês é válido
-    if mes_nome not in calendar.month_name:
+    if mes_nome.capitalize() not in meses_pt:
         raise ValueError(f"Mês inválido: {mes_nome}")
 
-    mes_num = list(calendar.month_name).index(mes_nome)
-    st.write(mes_num)
+    mes_num = meses_map[mes_nome]
+
     # Processamento da data
     df["data"] = pd.to_datetime(df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2))
     df["ordem_custom"] = (df["data"] - df["data"].min()).dt.days
