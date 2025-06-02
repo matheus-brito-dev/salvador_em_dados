@@ -12,7 +12,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from db.Sup_Cliente import Sup_Cliente
 from io import BytesIO
-from PIL import Image
+from datetime import date
+
 
 supabase = Sup_Cliente()
 locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
@@ -90,6 +91,34 @@ def imagem_para_base64(path_img):
 def carregar_dados(tabela):
     response = supabase.buscar(tabela)
     return pd.DataFrame(response)
+
+
+def calcular_ano(valores):
+    anos = []
+    for valor in valores:
+        try:
+            ano_num = int(float(valor))
+            if 2025 <= ano_num <= 2030:
+                anos.append(ano_num)
+        except Exception as e:
+            st.warning(f"Erro ao processar ano '{valor}': {e}")
+    anos_ordenados = sorted(set(anos))
+    return anos_ordenados
+
+def calcular_mes(valores):
+    meses = []
+    for valor in valores:
+        try:
+            mes_num = int(float(valor))  # transforma 2.025 → 2
+            if 1 <= mes_num <= 12:
+                meses.append(calendar.month_name[mes_num])
+        except Exception as e:
+            st.warning(f"Erro ao processar '{valor}': {e}")
+
+    meses_ordenados = sorted(set(meses), key=lambda m: list(calendar.month_name).index(m))
+    return meses_ordenados
+
+
 # ========================================= FUNÇÕES MÓDULO ALIMENTAÇÃO ===============================================
 
 def carregar_select_box(modulo, coluna):
@@ -104,29 +133,10 @@ def carregar_select_box(modulo, coluna):
     valores = df[coluna].dropna().unique()
 
     if coluna == "mes":
-        meses = []
-        for valor in valores:
-            try:
-                mes_num = int(float(valor))  # transforma 2.025 → 2
-                if 1 <= mes_num <= 12:
-                    meses.append(calendar.month_name[mes_num])
-            except Exception as e:
-                st.warning(f"Erro ao processar '{valor}': {e}")
-
-        meses_ordenados = sorted(set(meses), key=lambda m: list(calendar.month_name).index(m))
-        return meses_ordenados
+        return calcular_mes(valores)
 
     elif coluna == "ano":
-        anos = []
-        for valor in valores:
-            try:
-                ano_num = int(float(valor))
-                if 2025 <= ano_num <= 2030:
-                    anos.append(ano_num)
-            except Exception as e:
-                st.warning(f"Erro ao processar ano '{valor}': {e}")
-        anos_ordenados = sorted(set(anos))
-        return anos_ordenados
+        return calcular_ano(valores)
 
     else:
         return sorted(valores.tolist())
@@ -683,14 +693,16 @@ def criar_tabela_custos_habitacao(df, mes, ano):
 
 
     df_filtrado['descricao'] = ['Gasto Médio Mensal com Casa',
-                                'Gasto Médio Mensal com Apartamento',
                                 'Gasto Médio Mensal com Quarto',
+                                'Gasto Médio Mensal com Apartamento',
                                 'Gasto Médio Mensal Total, considerando (Casas, Aps, Quartos, etc...)'
 
 
                                 ]
+
     df_filtrado["data"] = df_filtrado["data"].dt.strftime("%B/%Y").str.capitalize()
     mes_atual = df_filtrado['data'].iloc[0]
+
     df_filtrado = df_filtrado[['descricao', 'media_aluguel_sem_taxas','media_aluguel_com_taxas']]
     df_filtrado.columns = ['Descrição','Média Geral Alugéis com Impostos', 'Média Geral Aluguéis sem Impostos']
     st.subheader(f"📊 Custos Habitacionais com e sem Taxas - {mes_atual}")
@@ -929,6 +941,196 @@ def calcular_indicadores_transporte(df):
 
     return df_filtrado
 
+
+# =========================================== FUNÇÕES MÓDULO ICV =================================================
+
+
+
+def carregar_select_box_icv(tabela, coluna, tempo):
+    df = carregar_dados(tabela)
+
+    if df.empty:
+        st.error("Não existem dados")
+        return []
+
+    #valores = df[coluna].dropna().unique()
+
+    df = converter_data_mes_ano(df, coluna)
+
+    valores_mes = df["mes"].dropna().unique()
+    valores_ano = df["ano"].dropna().unique()
+
+    if tempo == "mes":
+        return calcular_mes(valores_mes)
+    else:
+        return calcular_ano(valores_ano)
+
+def converter_data_mes_ano(df, coluna):
+
+    # Converte a coluna para datetime
+    df[coluna] = pd.to_datetime(df[coluna])
+
+    # Extrai ano e mês
+    df['ano'] = df[coluna].dt.year
+    df['mes'] = df[coluna].dt.month
+
+    return df
+
+def mostrar_grafico_evolucao_icv():
+
+    df = carregar_dados("icv")
+    df = converter_data_mes_ano(df, "data_calculo")
+
+    if not df.empty:
+        df["Data"] = df["data_calculo"].dt.strftime("%m/%Y")
+        fig = px.line(
+        df,
+        x="Data",
+
+        y="valor_icv",
+        markers=True,
+        title="Evolução do ICV"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    else:
+        st.warning("Nenhum gráfico para exibir")
+
+    return df
+
+def filtrar_df_ano_mes(df, ano, mes):
+
+    df_filtrado = df[
+        (df['ano'] == ano) &
+        (df['mes'] == meses_map[mes])]
+
+    return df_filtrado
+
+
+
+def calcular_indicadores(df, ano, mes):
+    df_filtrado = filtrar_df_ano_mes(df, ano, mes)
+
+    icv = df_filtrado["valor_icv"]
+    variacao = df_filtrado["variacao_percentual"]
+
+    return icv, variacao
+
+
+def obter_pesos_icv(ano, mes):
+    # Monta a data no início do mês
+    data_calculo = date(ano, meses_map[mes], 1).isoformat()
+
+    # Busca o ICV desse mês
+    icv = supabase.buscar("icv", filtros={"data_calculo": data_calculo})
+    if not icv:
+        st.warning(f"Nenhum ICV encontrado para {data_calculo}.")
+        return None
+
+    icv_id = icv[0]['id']
+
+
+    # Busca os pesos usando o ID do ICV
+    pesos = supabase.buscar("pesos_icv", filtros={"icv_id": icv_id})
+    if not pesos:
+        st.warning(f"Nenhum peso encontrado para o ICV ID {icv_id}.")
+        return None
+
+    return pesos[0]
+
+def mostrar_grafico_composicao_icv(ano, mes):
+    pesos = obter_pesos_icv(ano, mes)
+    if not pesos:
+        return
+
+    categorias = ["Alimentação", "Habitação", "Transporte"]
+    valores = [
+        pesos["peso_alimentacao"],
+        pesos["peso_habitacao"],
+        pesos["peso_transporte"]
+    ]
+
+    df = {
+        "Categoria": categorias,
+        "Peso (%)": [v * 100 for v in valores]
+    }
+
+
+    fig = px.pie(df, names="Categoria",
+                 values="Peso (%)")
+    fig.update_layout(
+        height=500,
+        legend=dict(
+            orientation="h",
+            y=-0.3,
+            x=0.5,
+            xanchor="center"
+        ))
+
+    st.plotly_chart(fig)
+
+
+def grafico_custo_vs_renda(df):
+    """
+    Espera um DataFrame com as colunas:
+    - data_calculo (ex: '2025-04-01')
+    - valor_icv (float): ICV em base 100
+    - salario_minimo (float): valor nominal em R$
+    - categoria (opcional): ex: localização ou faixa etária
+    """
+
+    df["data_calculo"] = pd.to_datetime(df["data_calculo"])
+
+    # Supondo que o salário mínimo real esteja em df["salario_minimo"]
+    if "salario_minimo" not in df.columns:
+        df["salario_minimo"] = salario_minimo  # valor fixo para todos, se não tiver coluna
+
+    # Converter o salário mínimo para base 100 (mesmo mês base do ICV)
+    salario_base = df["salario_minimo"].iloc[0]
+    df["salario_indexado"] = (df["salario_minimo"] / salario_base) * 100
+
+    fig = px.scatter(
+        df,
+        x="salario_indexado",
+        y="valor_icv",
+        color="categoria" if "categoria" in df.columns else None,
+        hover_name="data_calculo",
+        trendline="ols"
+    )
+
+    fig.update_layout(
+        xaxis_title="Salário Mínimo (base 100)",
+        yaxis_title="ICV (base 100)"
+    )
+
+    st.plotly_chart(fig)
+
+
+
+def grafico_icv_vs_indicador(df, mes, indicador="ipca"):
+    """
+    Compara ICV com um indicador externo (ipca, selic, ibov).
+    """
+
+
+    df["data_calculo"] = pd.to_datetime(df["data_calculo"])
+    df["ipca"] = 0.16
+    #df_merge = pd.merge(df, df_ipca, on="data_calculo", how="inner")
+    fig = px.scatter(
+        df,
+        x=indicador,
+        y="valor_icv",
+        hover_name="data_calculo",
+        trendline="ols",  # adiciona linha de tendência
+        title=f"ICV vs {indicador.upper()}"
+    )
+
+    fig.update_layout(
+        xaxis_title=f"{indicador.upper()}",
+        yaxis_title="ICV (Índice de Custo de Vida)"
+    )
+
+    st.plotly_chart(fig)
 
 
 

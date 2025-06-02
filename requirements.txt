@@ -52,6 +52,7 @@ PyQtWebEngine==5.15.6
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2025.2
+plotly
 pyxlsb==1.0.10
 realtime==2.4.1
 scrapy-playwright==0.0.43

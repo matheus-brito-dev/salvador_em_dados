@@ -1,21 +1,21 @@
-from enum import unique
-
 import streamlit as st
+import pandas as pd
+import logging
 import plotly.express as px
+import numpy as np
+import locale
+import base64
+import calendar
 import os
-import sys
-import streamlit as st
-from twisted.conch.scripts.tkconch import options
-
-# Obtém o caminho do diretório raiz do projeto
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-# Adiciona ao sys.path
-sys.path.append(project_root)
 
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from db.Sup_Cliente import Sup_Cliente
+from io import BytesIO
+from PIL import Image
 from core.funcoes import *
+
 
 st.set_page_config(layout="wide")
 supabase = Sup_Cliente()
@@ -288,5 +288,39 @@ with abas[2]:
         with col5:
             grafico_comprometimento_cesta_basica(custo_mensal, "transporte")
 
+with abas[3]:
+    col_ano, col_mes = st.columns([2, 2])
+    col1, col2, col3 = st.columns([2, 1, 1])
+    col4, col5 = st.columns([2,2])
+
+
+    with col_ano:
+        ano_selecionado_icv = st.selectbox("Escolha o ano ", options=carregar_select_box_icv("icv", "data_calculo", "ano"))
+    with col_mes:
+        mes_selecionado_icv = st.selectbox("Escolha o mês ", options=carregar_select_box_icv("icv", "data_calculo", "mes"))
+
+    with col1:
+        st.subheader("Evolução do ICV ao longo do tempo")
+        df = mostrar_grafico_evolucao_icv()
+    with col2:
+        st.subheader("Indicadores do ICV")
+        icv, variacao = calcular_indicadores(df, ano_selecionado_icv, mes_selecionado_icv)
+
+        st.metric(label="📉  Valor do ICV", value=f"R$ {icv.iloc[-1]:.2f}")
+        st.metric(label="📈  Variação ICV", value=f" {variacao.iloc[-1]:.2f}%")
+
+    with col3:
+        st.subheader(f"Composição percentual do ICV ({meses_map[mes_selecionado_icv]}/{ano_selecionado_icv})")
+        mostrar_grafico_composicao_icv(ano_selecionado_icv, mes_selecionado_icv)
+
+    with col4:
+        df = carregar_dados("icv")
+        st.subheader("Dispersão: ICV (base 100) vs Salário Mínimo Indexado (base 100)")
+        grafico_custo_vs_renda(df)
+
+    with col5:
+        #st.subheader("ICV vs IPCA")
+        #grafico_icv_vs_indicador(df,mes_selecionado_icv,indicador="ipca")
+        pass
 
 rodape()
