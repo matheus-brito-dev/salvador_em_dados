@@ -68,7 +68,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.markdown('<br/><br/>',unsafe_allow_html=True)
-st.title("📊 Painel de Dados Automatizados Custo de Vida SSA - Beta")
+st.title("📊 Dashboard Automatizado Salvador em Dados - Beta")
 
 abas = st.tabs(["🍉 Alimentação", "🏠 Habitação", "🚌 Transporte", "📈 ICV"])
 
@@ -78,7 +78,8 @@ with abas[0]:
 
     col_ano, col_mes = st.columns([2,2])
     col1, col2, col3 = st.columns([2, 1, 1])
-    col4, col5 = st.columns([2,3])
+    col4, col5 = st.columns([2,2])
+    col6, col7 = st.columns([2,3])
 
     with col_ano:
         ano_selecionado = st.selectbox("Selecione o ano", options=carregar_select_box("cestas", coluna="ano"))
@@ -114,31 +115,35 @@ with abas[0]:
         st.subheader("💸 Comprometimento do Salário")
         grafico_comprometimento_cesta_basica(custo_cesta, tipo='cesta')
 
+
     with col4:
+        # ========================= GRÁFICO QUE ANALISA VARIAÇÃO DE CADA CATEGORIA DA CESTA BÁSICA =============================
+        st.subheader("🔍  Evolução do Custo por Categoria da Cesta Básica")
+        df_cesta_categoria = custo_cesta_categoria()
+
+    with col5:
+        st.subheader("🔍  Comprometimento Salário Mínimo por Categoria")
+        variacao_categoria_por_data(df_cesta_categoria, mes_selecionado_alim, ano_selecionado, tipo=1)
+
+    with col6:
+       variacao_categoria_por_data(df_cesta_categoria, mes_selecionado_alim, ano_selecionado, tipo=2)
+
+
+    with col7:
         st.subheader("⚙️ Benchmark Mensal por Local de Pesquisa")
         grafico_benchmark_alimentacao()
 
-    with col5:
-        # ========================= GRÁFICO QUE ANALISA VARIAÇÃO DE CADA CATEGORIA DA CESTA BÁSICA =============================
-        st.subheader("🔍  Evolução do custo por categoria da cesta básica")
-        df_cesta_categoria = custo_cesta_categoria()
 
     # ============================= GRÁFICO COM A VARIAÇÃO ENTRE O MÊS ANTERIOR E O MÊS ATUAL NUMERICAMENTE =============================
 
     # Garantir que está ordenado corretamente
-    st.subheader("🔍  Variação percentual itens da Cesta Básica")
+    st.subheader(f"🔍  Variação percentual itens da Cesta Básica - {mes_selecionado_alim}")
     # Ordena por categoria e data
     df = df_cesta_categoria.sort_values(["categoria", "data"])
-    calcular_variacao_categorias_cesta(df)
 
+
+    calcular_variacao_categorias_cesta(df, mes_selecionado_alim, ano_selecionado)
     st.markdown("<br>", unsafe_allow_html=True)
-
-
-    #criar um gráfico de pizza com o comprometimento do salário mínimo por categoria de itens da cesta
-    # df_filtrado_alim = df[df["mes"]] == mes_selecionado_alim
-    st.write(mes_selecionado_alim)
-
-
 
     # ============================= CÁLCULO DA PREVISÃO DO CUSTO CESTA USANDO ML PARA 30 DIAS =============================
 
@@ -159,40 +164,41 @@ with abas[1]:
         mes_selecionado_hab = st.selectbox("Selecione o Mês", options=carregar_select_box("custo_habitacao", coluna="mes"))
     with col1:
         st.subheader("📊 Evolução do Custo de Habitação por Tipo de Imóvel")
-        custo_habitacao, df_habitacao = calcular_custo_mensal_habitacao_valor(retornar_df=True)
-        ultimos_valores = exibir_resultados_habitacao() #retorno os valores calculados para a coluna 2
+        custo_habitacao, df_habitacao = calcular_custo_mensal_habitacao_valor(mes_selecionado_hab, ano_selecionado_hab, retornar_df=True)
+        casa, kitnet, apartamento = exibir_resultados_habitacao(mes_selecionado_hab, ano_selecionado_hab) #retorno os valores calculados para a coluna 2
 
 
     with col2:
         if custo_habitacao is not None:
             st.subheader(f"📌 Indicadores de Custo Habitacional {mes_selecionado_hab}")
-            st.metric(label="🏠 Custo Total Médio Pomderado c/ IPTU e Condomínio", value=f"R$ {custo_habitacao:.2f}")
-            st.metric(label="🏙 Custo Médio Apartamentos s/ Taxas", value=f"R$ {ultimos_valores["Apartamentos"]["sem_taxas"]:.2f}")
-            st.metric(label="🏘 Custo Médio Casas s/ Taxas", value=f"R$ {ultimos_valores["Casas"]["sem_taxas"]:.2f}")
-            st.metric(label="🏚 Custo Médio Quartos s/ Taxas", value=f"R$ {ultimos_valores["Aluguel de quartos"]["sem_taxas"]:.2f}")
+            st.metric(label="🏠 Custo Total Médio Ponderado com IPTU e Condomínio", value=f"R$ {custo_habitacao:.2f}")
+            st.metric(label="🏙 Custo Médio Ponderado Apartamentos sem Taxas", value=f"R$ {apartamento:.2f}")
+            st.metric(label="🏘 Custo Médio Ponderado Casas sem Taxas", value=f"R$ {casa:.2f}")
+            st.metric(label="🏚 Custo Médio Ponderado Quartos sem Taxas", value=f"R$ {kitnet:.2f}")
 
     with col3:
         st.subheader("💸 Comprometimento do Salário")
         grafico_comprometimento_cesta_basica(custo_habitacao, tipo='habitacao')
 
-# ========================== TABELA COM OS CUSTOS HABITACIONAIS COM IMPOSTO E SEM ================================
+# ========================== ÍNDICE DE HABITAÇÃO CRIADO PARA VALIDAR ================================
 
     #Rotina para fazer o benchmark da habitação usando o IPCA habitação
-    # custos_hab = [custo_habitacao,2390.50,2415.59]
-    # ipca_pct = [0.00,1.19,1.22]
-    # meses = ['Mar','Abr','Maio']
-    # result = calcular_indice_base100_comparativo(custos_hab,ipca_pct,meses)
-    # # Exibir gráficos comparativos
-    # st.line_chart(result.set_index('mes')[['indice_base100_hab', 'indice_base100_ipca']])
-    # st.write(result)
+    st.subheader("📊 Índice Comparativo IPCA Habitação")
+    custos, meses = obter_custos_habitacao()
+    ipca_pct = [0.00,1.19]
+    result = calcular_indice_base100_comparativo(custos,ipca_pct,meses)
+    # Exibir gráficos comparativos
+    st.line_chart(result.set_index('mes')[['indice_base100_hab', 'indice_base100_ipca']])
 
-    criar_tabela_custos_habitacao(df_habitacao)
+# ========================== TABELA COM OS CUSTOS HABITACIONAIS COM IMPOSTO E SEM ================================
+
+    criar_tabela_custos_habitacao(df_habitacao, mes_selecionado_hab, ano_selecionado_hab)
 
 # ========================== MAPA INTERATIVO ================================
     df_mapa = calcular_preco_medio_aluguel_por_bairro()
 
 # ========================== ALUGUEIS POR BAIRRO ================================
-    st.subheader("🏠 Preço Médio  por Bairro")
+    st.subheader("🏠 Custo Médio em (R$) de Aluguel por Bairro")
     bairro_selecionado = st.selectbox("Selecione o bairro", options=carregar_bairros(df_mapa))
     listar_preco_medio_por_bairro(bairro_selecionado, df_mapa)
 

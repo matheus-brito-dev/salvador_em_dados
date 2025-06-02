@@ -17,6 +17,38 @@ from PIL import Image
 supabase = Sup_Cliente()
 locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 
+
+salario_minimo = 1518.0
+
+categorias_corretas = {
+        "acucar": "Açúcar",
+        "arroz": "Arroz",
+        "banana": "Banana",
+        "cafe": "Café",
+        "carne": "Carne",
+        "farinha": "Farinha",
+        "batata": "Batata",
+        "feijao": "Feijão",
+        "leite": "Leite",
+        "manteiga": "Manteiga",
+        "oleo": "Óleo",
+        "pao": "Pão",
+        "tomate":"Tomate"
+
+    }
+
+quantidades_cesta = {
+        "carne": 4.5, "leite": 6.0, "feijao": 4.5, "arroz": 3.6, "farinha": 3.0,
+        "batata": 6.0, "tomate": 12.0, "pao": 6.0, "cafe": 300, "banana": 7.5,
+        "acucar": 3.0, "oleo": 750, "manteiga": 750
+    }
+
+unidades_cesta = {
+    "carne": "kg", "leite": "L", "feijao": "kg", "arroz": "kg", "farinha": "kg",
+    "batata": "kg", "tomate": "kg", "pao": "kg", "cafe": "g", "banana": "kg",
+    "acucar": "kg", "oleo": "ml", "manteiga": "g"
+}
+
 icones_png = {
     "arroz": "assets/icones/rice.png",
     "feijao": "assets/icones/coffee-beans.png",
@@ -33,10 +65,16 @@ icones_png = {
     "acucar": "assets/icones/sugar.png"
 
 }
+meses_map = {
+    "Janeiro": 1, "Fevereiro": 2, "Março": 3, "Abril": 4,
+    "Maio": 5, "Junho": 6, "Julho": 7, "Agosto": 8,
+    "Setembro": 9, "Outubro": 10, "Novembro": 11, "Dezembro": 12
+}
 
 def rodape():
     st.subheader('Direitos Autorais')
     st.write('Todos os Direitos Reservados ©2025 - Prof. Matheus Brito de Oliveira')
+    st.write('Todas as fontes são obtidas pelo próprio sistema.')
     st.write('Para qualquer esclarecimento/solicitação - entre em contato através do link: colocar o site')
 
 def image_to_base64(img):
@@ -199,96 +237,117 @@ def calcular_custo_cesta_basica(mes_nome, retornar_df=False):
     return (valor_cesta, valor_mais_antigo, df_mes) if retornar_df else valor_cesta
 
 
+def variacao_categoria_por_data(df, mes_selecionado, ano_selecionado, tipo):
+    mes = meses_map[mes_selecionado]
+    df_filtrado = df[(df["mes"] == mes) & (df["ano"] == ano_selecionado)].copy()
 
-def calcular_custo_mensal_habitacao_valor(retornar_df=False):
-    df = carregar_dados("custo_habitacao")
-    df["data"] = pd.to_datetime(df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2))
-    valor_mais_recente = df.sort_values(by=["ano", "mes"]).iloc[-1]["media_aluguel_com_taxas"]
-    return (valor_mais_recente, df) if retornar_df else valor_mais_recente
+    if df_filtrado.empty:
+        st.warning("Nenhum dado encontrado para o mês e ano selecionados.")
+        return
 
-# def calcular_variacao_categorias_cesta(df):
-#     # Pega os dois últimos registros por categoria (últimos dois meses)
-#     ultimos_dois = df.groupby("categoria").tail(2)
-#
-#     # Calcula variação percentual dentro desses dois últimos por categoria
-#     ultimos_dois["variacao_pct"] = ultimos_dois.groupby("categoria")["gasto_total"].pct_change() * 100
-#     ultimos_dois["variacao_fmt"] = ultimos_dois["variacao_pct"].map(lambda x: f"{x:+.2f}%" if pd.notnull(x) else "-")
-#
-#     # Pega só o último mês (aquele que tem a variação preenchida)
-#     resultado = ultimos_dois.groupby("categoria").tail(1)
-#
-#     # Seleciona e renomeia as colunas que você quer mostrar
-#     tabela = resultado[["categoria", "data", "gasto_total", "variacao_fmt"]].rename(columns={
-#         "categoria": "Categoria",
-#         "data": "Data",
-#         "gasto_total": "Gasto Total",
-#         "variacao_fmt": "Variação Mensal"
-#     })
-#     tabela["Ícone"] = tabela["Categoria"].map(icones_png)
-#     tabela["Data"] = tabela["Data"].dt.strftime("%b/%Y").str.title()
-#
-#     # Exibe no Streamlit
-#     st.dataframe(tabela.reset_index(drop=True), use_container_width=True, hide_index=True)
+    df_filtrado["percentual_salario"] = (df_filtrado["gasto_total"] / salario_minimo) * 100
+    df_filtrado["categoria"] = df_filtrado["categoria"].map(categorias_corretas).fillna(df_filtrado["categoria"])
 
-def calcular_variacao_categorias_cesta(df):
+    if tipo == 1:
+        # Gráfico de pizza
+        fig = px.pie(
+            df_filtrado,
+            names="categoria",
+            values="percentual_salario",
+            title=f"Gastos por Categoria em {mes}/{ano_selecionado} (% do Salário Mínimo)",
+            hole=0.5
+        )
+        fig.update_traces(
+            textinfo='none',
+            texttemplate='%{label}: %{value:.1f}%',
+            textposition='outside',
+            pull=[0.05] * len(df_filtrado),
+            marker=dict(line=dict(color='white', width=2))
+        )
+        fig.update_layout(height=500, width=700, margin=dict(t=80, b=80, l=80, r=80))
+        st.plotly_chart(fig, use_container_width=True)
 
-    categorias_corretas = {
-        "acucar": "Açúcar",
-        "arroz": "Arroz",
-        "banana": "Banana",
-        "cafe": "Café",
-        "carne": "Carne",
-        "farinha": "Farinha",
-        "batata": "Batata",
-        "feijao": "Feijão",
-        "leite": "Leite",
-        "manteiga": "Manteiga",
-        "oleo": "Óleo",
-        "pao": "Pão",
-        "tomate":"Tomate"
+    elif tipo == 2:
+        # Gráfico de barras horizontais
+        fig = px.bar(
+            df_filtrado,
+            x="percentual_salario",
+            y="categoria",
+            orientation="h",
+            text=df_filtrado["percentual_salario"].map(lambda x: f"{x:.1f}%"),
+            labels={"percentual_salario": "% do Salário Mínimo", "categoria": "Categoria"},
+            title=f"Gastos por Categoria como % do Salário Mínimo - {mes}/{ano_selecionado}"
+        )
+        fig.update_traces(marker_color='teal', textposition='outside')
+        fig.update_layout(height=500, xaxis_tickformat=".1f", margin=dict(l=100, r=40, t=60, b=40))
+        st.plotly_chart(fig, use_container_width=True)
 
-    }
+    else:
+        st.error("Tipo de gráfico inválido. Use 1 para pizza e 2 para barras.")
+
+
+def calcular_variacao_categorias_cesta(df, mes_selecionado, ano):
+    df_ordenado = df.sort_values(["categoria", "data"]).copy()
+
     # 1. Pega os dois últimos registros por categoria
-    ultimos_dois = df.groupby("categoria").tail(2)
 
-    # 2. Calcula variação mensal (últimos dois meses)
-    ultimos_dois["variacao_pct"] = ultimos_dois.groupby("categoria")["gasto_total"].pct_change() * 100
-    ultimos_dois["variacao_fmt"] = ultimos_dois["variacao_pct"].map(lambda x: f"{x:+.2f}%" if pd.notnull(x) else "-")
+
+    # 2. Calcula variação mensal (últimos dois meses) #precisa ajustar por data
+    df_ordenado["variacao_pct"] = df_ordenado.groupby("categoria")["gasto_total"].pct_change() * 100
+    df_ordenado["variacao_fmt"] = df_ordenado["variacao_pct"].map(lambda x: f"{x:+.2f}%" if pd.notnull(x) else "-")
 
     # 3. Último mês
-    resultado = ultimos_dois.groupby("categoria").tail(1)
-    tabela = resultado[["categoria", "data", "gasto_total", "variacao_fmt"]].rename(columns={
+
+    resultado = df_ordenado[
+        (df_ordenado["data"].dt.month == meses_map[mes_selecionado]) &
+        (df_ordenado["data"].dt.year == ano)
+        ]
+
+    tabela = resultado[["categoria", "gasto_total", "variacao_fmt"]].rename(columns={
         "categoria": "Categoria",
-        "data": "Data",
+        #"data": "Data",
         "gasto_total": "Gasto Total",
         "variacao_fmt": "Variação Mensal"
     })
 
-    # 4. Variação acumulada composta mês a mês (como IBGE/DIEESE)
-    df_ordenado = df.sort_values(["categoria", "data"])
+    # 5. Variação acumulada até o mês selecionado
     df_ordenado["fator"] = df_ordenado.groupby("categoria")["gasto_total"].pct_change().fillna(0) + 1
 
-    # Agrupando e multiplicando os fatores por categoria
-    variacao_acumulada = df_ordenado.groupby("categoria")["fator"].agg(lambda x: x.prod())
+    # Calcula produto acumulado dos fatores mês a mês
+    df_ordenado["fator_acumulado"] = df_ordenado.groupby("categoria")["fator"].cumprod()
 
-    # Convertendo para percentual final acumulado
-    variacao_acumulada = (variacao_acumulada - 1) * 100
-    variacao_acumulada_fmt = variacao_acumulada.map(lambda x: f"{x:+.2f}%" if pd.notnull(x) else "-")
+    # Pega apenas o mês selecionado
+    df_selecionado = df_ordenado[
+        (df_ordenado["data"].dt.month == meses_map[mes_selecionado]) &
+        (df_ordenado["data"].dt.year == ano)
+        ]
 
-    # Junta com a tabela final
-    tabela = tabela.merge(variacao_acumulada_fmt.rename("Variação Acumulada"), left_on="Categoria", right_index=True)
+    # Calcula variação acumulada como (fator_acumulado - 1) * 100
+    df_selecionado["variacao_acumulada"] = (df_selecionado["fator_acumulado"] - 1) * 100
+    df_selecionado["variacao_acumulada_fmt"] = df_selecionado["variacao_acumulada"].map(
+        lambda x: f"{x:+.2f}%" if pd.notnull(x) else "-")
 
+    tabela = tabela.merge(
+        df_selecionado[["categoria", "variacao_acumulada_fmt"]].rename(columns={
+            "categoria": "Categoria",
+            "variacao_acumulada_fmt": "Variação Acumulada"
+        }),
+        on="Categoria",
+        how="left"
+    )
     tabela["Ícone"] = tabela["Categoria"].map(lambda cat: imagem_para_base64(icones_png[cat]))
+    tabela["Quantidade Cesta"] = tabela["Categoria"].map(quantidades_cesta).fillna(tabela["Categoria"])
+    tabela["Unidade"] = tabela["Categoria"].map(unidades_cesta).fillna("")
 
     # 6. Formata data
-    tabela["Data"] = tabela["Data"].dt.strftime("%b/%Y").str.title()
+    #tabela["Data"] = tabela["Data"].dt.strftime("%b/%Y").str.title()
 
     # 7. Renderiza HTML com imagens
     html = """
     <table style="width:100%; border-collapse: collapse;">
     <thead>
     <tr style="text-align: center; border-bottom: 1px solid #ccc;">
-    <th>Ícone</th><th>Categoria</th><th>Data</th><th>Gasto Total</th><th>Variação Mensal</th><th>Variação Acumulada</th>
+    <th>Ícone</th><th>Categoria</th><th>Gasto Total</th><th>Quantidade na Cesta</th><th>Variação Mensal</th><th>Variação Acumulada</th>
     </tr>
     </thead>
     <tbody>
@@ -299,8 +358,8 @@ def calcular_variacao_categorias_cesta(df):
     <tr style="border-bottom: 1px solid #eee; text-align:center">
     <td><img src="{row['Ícone']}" width="30"></td>
     <td>{categorias_corretas[row['Categoria']]}</td>
-    <td>{row['Data']}</td>
     <td>R${row['Gasto Total']:.2f}</td>
+   <td>{row['Quantidade Cesta']:.2f} {row['Unidade']}</td>
     <td>{row['Variação Mensal']}</td>
     <td>{row['Variação Acumulada']}</td>
     </tr>
@@ -388,12 +447,58 @@ def grafico_benchmark_alimentacao():
 
 
 # =========================================== FUNÇÕES MÓDULO HABITAÇÃO =================================================
+def calcular_custo_mensal_habitacao_valor(mes, ano,retornar_df=False):
+    df = carregar_dados("custo_habitacao")
+    if df is None or df.empty:
+        return []
+
+
+    df["data"] = pd.to_datetime(df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2))
+    df_filtrado = df[(df["ano"] == ano) & (df["mes"] == meses_map[mes])]
+
+    valor_mais_recente = df_filtrado.sort_values(by=["ano", "mes"]).iloc[-1]["media_aluguel_com_taxas"]
+    return (valor_mais_recente, df_filtrado) if retornar_df else valor_mais_recente
+
+def obter_custos_habitacao():
+    df = carregar_dados("custo_habitacao")
+
+    if df is None or df.empty:
+        return [], []
+
+    # Cria uma coluna de data para ordenar
+    df["data"] = pd.to_datetime(df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2))
+    df = df.sort_values("data")
+
+    # Seleciona custos de abril e maio de 2025
+    abril = df.loc[df["data"] == "2025-04-01", "media_aluguel_com_taxas"].values
+    maio = df.loc[df["data"] == "2025-05-01", "media_aluguel_com_taxas"].values
+
+    # Verificação de segurança
+    abril_valor = abril[-1] if len(abril) > 0 else None
+    maio_valor = maio[-1] if len(maio) > 0 else None
+
+    custos = []
+    custos.append(abril_valor)
+    custos.append(maio_valor)
+
+    meses = (
+        df.sort_values("data")  # ordena pelas datas reais
+        .drop_duplicates(subset="data")  # garante 1 entrada por mês
+        ["data"]
+        .dt.strftime("%b/%Y")
+        .tolist()
+    )
+
+    return custos, meses
+
+
 
 def obter_tipos_imoveis():
     tipos = supabase.buscar("tipos_imoveis")  # retorna lista de dicts, ex: [{"id": "...", "nome": "..."}]
     return {tipo["id"]: tipo["descricao"] for tipo in tipos}
 
-def exibir_resultados_habitacao():
+
+def exibir_resultados_habitacao(mes, ano):
     df = consultar_custos_habitacao()
 
     if df is None or df.empty:
@@ -401,12 +506,11 @@ def exibir_resultados_habitacao():
         return None
 
     tipo_imovel_map = obter_tipos_imoveis()
-
-    # Mesma lógica que antes, só que agora o dicionário vem do banco
-    df["mes_ano"] = df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2)
     df["tipo_imovel"] = df["tipo_imovel_id"].map(tipo_imovel_map)
     df = df.dropna(subset=["tipo_imovel"])
+    df["mes_ano"] = df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2)
 
+    # 1) Para o gráfico, use o DataFrame completo (sem filtro por mês/ano)
     df_longo = pd.melt(
         df,
         id_vars=["mes_ano", "tipo_imovel"],
@@ -414,7 +518,6 @@ def exibir_resultados_habitacao():
         var_name="tipo_valor",
         value_name="valor"
     )
-
     legenda_tipo_valor = {
         "media_aluguel_sem_taxas": "Aluguel Sem Taxas",
         "media_aluguel_com_taxas": "Aluguel Com Taxas"
@@ -434,19 +537,32 @@ def exibir_resultados_habitacao():
     fig.update_layout(xaxis_tickformat="%m/%Y")
     st.plotly_chart(fig, use_container_width=True)
 
-    ultimo_mes = df["mes_ano"].max()
-    df_ultimo = df[df["mes_ano"] == ultimo_mes]
+    # 2) DataFrame filtrado só para o mês e ano selecionados
+    df_filtrado = df[(df["ano"] == ano) & (df["mes"] == meses_map[mes])]
 
-    ultimos_valores = {}
-    for tipo_uuid, nome_legivel in tipo_imovel_map.items():
-        linha = df_ultimo[df_ultimo["tipo_imovel_id"] == tipo_uuid]
-        if not linha.empty:
-            ultimos_valores[nome_legivel] = {
-                "sem_taxas": linha["media_aluguel_sem_taxas"].values[0],
-                "com_taxas": linha["media_aluguel_com_taxas"].values[0]
-            }
+    df_longo_filtrado = pd.melt(
+        df_filtrado,
+        id_vars=["mes_ano", "tipo_imovel"],
+        value_vars=["media_aluguel_sem_taxas", "media_aluguel_com_taxas"],
+        var_name="tipo_valor",
+        value_name="valor"
+    )
 
-    return ultimos_valores
+    df_sem_taxas = df_longo_filtrado[df_longo_filtrado["tipo_valor"] == "media_aluguel_sem_taxas"]
+
+    if df_sem_taxas.empty:
+        st.info("Nenhum valor de aluguel sem taxas encontrado para o mês/ano selecionado.")
+
+    casa = df_sem_taxas.loc[df_sem_taxas["tipo_imovel"] == "Casas", "valor"].values[0] \
+        if not df_sem_taxas[df_sem_taxas["tipo_imovel"] == "Casas"].empty else None
+
+    kitnet = df_sem_taxas.loc[df_sem_taxas["tipo_imovel"] == "Aluguel de quartos", "valor"].values[0] \
+        if not df_sem_taxas[df_sem_taxas["tipo_imovel"] == "Aluguel de quartos"].empty else None
+
+    apartamento = df_sem_taxas.loc[df_sem_taxas["tipo_imovel"] == "Apartamentos", "valor"].values[0] \
+        if not df_sem_taxas[df_sem_taxas["tipo_imovel"] == "Apartamentos"].empty else None
+
+    return casa, kitnet, apartamento
 
 
 def consultar_custos_habitacao():
@@ -559,8 +675,11 @@ def comparativo_tipo_imovel(df_habitacao):
     st.plotly_chart(fig_comp, use_container_width=True)
 
 
-def criar_tabela_custos_habitacao(df):
-    df_filtrado = df[['media_aluguel_sem_taxas', 'media_aluguel_com_taxas', 'data']]
+def criar_tabela_custos_habitacao(df, mes, ano):
+    df_filtrado = df[
+        (df['ano'] == ano) &
+        (df['mes'] == meses_map[mes])
+        ][['media_aluguel_sem_taxas', 'media_aluguel_com_taxas', 'data']]
 
 
     df_filtrado['descricao'] = ['Gasto Médio Mensal com Casa',
@@ -572,18 +691,20 @@ def criar_tabela_custos_habitacao(df):
                                 ]
     df_filtrado["data"] = df_filtrado["data"].dt.strftime("%B/%Y").str.capitalize()
     mes_atual = df_filtrado['data'].iloc[0]
-    df_filtrado = df_filtrado[['data','descricao', 'media_aluguel_sem_taxas','media_aluguel_com_taxas']]
-    df_filtrado.columns = ['Data','Descrição','Média Geral Alugéis com Impostos', 'Média Geral Aluguéis sem Impostos']
+    df_filtrado = df_filtrado[['descricao', 'media_aluguel_sem_taxas','media_aluguel_com_taxas']]
+    df_filtrado.columns = ['Descrição','Média Geral Alugéis com Impostos', 'Média Geral Aluguéis sem Impostos']
     st.subheader(f"📊 Custos Habitacionais com e sem Taxas - {mes_atual}")
     st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
 
 def carregar_dados_por_bairro():
     response = supabase.rpc_no_param("get_preco_medio_por_bairro")
+
     return pd.DataFrame(response.data)
 
 def calcular_preco_medio_aluguel_por_bairro():
     st.subheader("🗺️ Mapa de Custo da Habitação por Região")
     df_mapa = carregar_dados_por_bairro()
+
     if df_mapa is None or df_mapa.empty:
         st.warning("Aviso: Nenhum dado para exibir no mapa.")
         st.stop()
@@ -660,6 +781,10 @@ def calcular_indice_base100_comparativo(custos_habitacao, ipca_pct, meses=None):
     :param meses: (Opcional) Lista com os nomes dos meses correspondentes aos valores, ex: ['Mar', 'Abr', 'Mai']
     :return: DataFrame com os valores e índices base 100 para ambos
     """
+    # Para o IPCA, vamos converter % acumulado para índice base 100
+    # Exemplo: IPCA acumulado 0% no mês 1 → índice 100
+    # IPCA acumulado 1.19% no mês 2 → índice 100*(1 + 1.19/100) = 101.19
+    # e assim sucessivamente
     # Definir os meses se não forem fornecidos
     if meses is None:
         meses = [f"Mês {i + 1}" for i in range(len(custos_habitacao))]
@@ -669,6 +794,7 @@ def calcular_indice_base100_comparativo(custos_habitacao, ipca_pct, meses=None):
         'mes': meses,
         'custo_total_medio': custos_habitacao
     })
+
 
     # Calcular o índice base 100 para custo habitacional
     df['indice_base100_hab'] = (df['custo_total_medio'] / df['custo_total_medio'].iloc[0]) * 100
@@ -681,7 +807,6 @@ def calcular_indice_base100_comparativo(custos_habitacao, ipca_pct, meses=None):
 
     # Adicionar o índice de IPCA no DataFrame
     df['indice_base100_ipca'] = ipca_indice[1:]  # remove o primeiro índice (100)
-
 
     # Retornar o DataFrame
     return df
@@ -727,7 +852,7 @@ def calcular_custos_transporte():
 
 
 def grafico_comprometimento_transporte(df):
-    salario_minimo = 1518.0
+
 
     if not df.empty:
         # Agrupa os custos totais por perfil
