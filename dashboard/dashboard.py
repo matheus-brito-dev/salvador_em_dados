@@ -19,7 +19,7 @@ from PIL import Image
 from core.funcoes import *
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 st.set_page_config(layout="wide")
 supabase = Sup_Cliente()
