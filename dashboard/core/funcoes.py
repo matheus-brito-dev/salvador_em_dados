@@ -498,7 +498,8 @@ def calcular_custo_mensal_habitacao_valor(mes, ano,retornar_df=False):
     df = carregar_dados("custo_habitacao")
     if df is None or df.empty:
         return []
-
+    st.write(mes)
+    st.write(ano)
 
     df["data"] = pd.to_datetime(df["ano"].astype(str) + "-" + df["mes"].astype(str).str.zfill(2))
     df_filtrado = df[(df["ano"] == ano) & (df["mes"] == meses_map[mes])]
