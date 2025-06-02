@@ -13,6 +13,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from db.Sup_Cliente import Sup_Cliente
 from io import BytesIO
 from datetime import date
+from babel.dates import format_datetime
 from babel.dates import format_date
 from datetime import date
 
@@ -116,7 +117,7 @@ def calcular_mes(valores):
             st.warning(f"Erro ao processar '{valor}': {e}")
 
     meses_ordenados = sorted(set(meses), key=lambda m: list(calendar.month_name).index(m))
-    return meses_ordenados
+    return format_datetime(meses_ordenados, locale='pt_BR')
 
 
 # ========================================= FUNÇÕES MÓDULO ALIMENTAÇÃO ===============================================
