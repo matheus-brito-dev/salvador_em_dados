@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import sklearn
 import streamlit as st
 import pandas as pd
 import logging
@@ -81,6 +81,8 @@ abas = st.tabs(["🍉 Alimentação", "🏠 Habitação", "🚌 Transporte", "�
 
 with abas[0]:
 
+
+
     col_ano, col_mes = st.columns([2,2])
     col1, col2, col3 = st.columns([2, 1, 1])
     col4, col5 = st.columns([2,2])
@@ -109,6 +111,7 @@ with abas[0]:
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
+        st.write(f"Versão do scikit-learn: {sklearn.__version__}")
         st.subheader(f"📌 Indicadores de Custo em {mes_selecionado_alim}")
         st.metric(label="🛒 Custo da Cesta Básica", value=f"R$ {custo_cesta:.2f}")
         st.metric(label="💰 Salário Mínimo Estimado", value=f"R$ {salario:.2f}")
