@@ -244,7 +244,7 @@ def calcular_custo_cesta_evolucao():
 
 def calcular_custo_cesta_basica(mes_nome, retornar_df=False):
     df = carregar_dados("cestas")
-
+    st.write(mes_nome)
     # Garantir que o mês é válido
     if mes_nome not in calendar.month_name:
         raise ValueError(f"Mês inválido: {mes_nome}")
