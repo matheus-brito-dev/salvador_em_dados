@@ -1,3 +1,9 @@
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
+
+
 import streamlit as st
 import pandas as pd
 import logging
@@ -6,8 +12,8 @@ import numpy as np
 import locale
 import base64
 import calendar
-import os
-import sys
+
+
 
 
 from sklearn.linear_model import LinearRegression
@@ -19,7 +25,7 @@ from PIL import Image
 from core.funcoes import *
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 st.set_page_config(layout="wide")
 supabase = Sup_Cliente()
