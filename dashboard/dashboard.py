@@ -111,7 +111,7 @@ with abas[0]:
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.write(f"Versão do scikit-learn: {sklearn.__version__}")
+
         st.subheader(f"📌 Indicadores de Custo em {mes_selecionado_alim}")
         st.metric(label="🛒 Custo da Cesta Básica", value=f"R$ {custo_cesta:.2f}")
         st.metric(label="💰 Salário Mínimo Estimado", value=f"R$ {salario:.2f}")

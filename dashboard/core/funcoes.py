@@ -6,6 +6,7 @@ import numpy as np
 import locale
 import base64
 import calendar
+from math import sqrt
 
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -437,7 +438,7 @@ def calcular_previsao_30_dias():
         # Avaliação
         y_pred = modelo.predict(X_test)
         mae = mean_absolute_error(y_test, y_pred)
-        rmse = mean_squared_error(y_test, y_pred, squared=False)
+        rmse = sqrt(mean_squared_error(y_test, y_pred))
 
         st.write(f"📈 MAE (Erro Médio Absoluto): R$ {mae:.2f}")
         st.write(f"📉 RMSE (Raiz do Erro Quadrático Médio): R$ {rmse:.2f}")
