@@ -1,6 +1,9 @@
 
 import sys
 import os
+
+
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import sklearn
 import streamlit as st
@@ -18,8 +21,6 @@ from db.Sup_Cliente import Sup_Cliente
 from io import BytesIO
 from PIL import Image
 from core.funcoes import *
-
-
 
 
 st.set_page_config(layout="wide")
@@ -80,9 +81,6 @@ abas = st.tabs(["🍉 Alimentação", "🏠 Habitação", "🚌 Transporte", "�
 # ============================= ABA ALIMENTAÇÃO =============================
 
 with abas[0]:
-
-
-
     col_ano, col_mes = st.columns([2,2])
     col1, col2, col3 = st.columns([2, 1, 1])
     col4, col5 = st.columns([2,2])
@@ -97,11 +95,20 @@ with abas[0]:
     with col1:
         st.subheader("📊 Evolução do Custo em (R$) da Cesta Básica Salvador")
         df_evolucao = calcular_custo_cesta_evolucao()
+        custo_medio_cesta = df_evolucao["valor_cesta"].mean()
         custo_cesta, primeiro_custo_cesta, df_cesta = calcular_custo_cesta_basica(mes_selecionado_alim,retornar_df=True)
+        custo_por_dia = custo_cesta / (calendar.monthrange(ano_selecionado, meses_map[mes_selecionado_alim]))[1]
         ultima = df_cesta.iloc[-1]
         horas = ultima["horas_trabalho"]
         salario = ultima["salario_estimado"]
         fig = px.line(df_evolucao, x="data_formatada", y="valor_cesta", markers=True)
+        fig.add_hline(
+            y=custo_medio_cesta,
+            line_dash="dot",
+            line_color="purple",
+            annotation_text=f"Média: R$ {custo_medio_cesta:.2f}",
+            annotation_position="top left"
+        )
         fig.update_layout(
             xaxis_title="Mês/Ano",
             yaxis_title="Valor da Cesta (R$)",
@@ -116,6 +123,8 @@ with abas[0]:
         st.metric(label="🛒 Custo da Cesta Básica", value=f"R$ {custo_cesta:.2f}")
         st.metric(label="💰 Salário Mínimo Estimado", value=f"R$ {salario:.2f}")
         st.metric(label="⏱️ Horas Trabalhadas Necessárias", value=f"{horas:.2f}")
+        st.metric(label='🍒 Custo médio por dia',
+                  value=f"R$ {custo_por_dia:.2f}")
         st.metric(label="📉 Variação Acumulada do Ano",
                   value=f"{((custo_cesta-primeiro_custo_cesta)/primeiro_custo_cesta) * 100 :.2f}%")
 
@@ -126,11 +135,11 @@ with abas[0]:
 
     with col4:
         # ========================= GRÁFICO QUE ANALISA VARIAÇÃO DE CADA CATEGORIA DA CESTA BÁSICA =============================
-        st.subheader("🔍  Evolução do Custo por Categoria da Cesta Básica")
+        st.subheader("🔍  Evolução do Custo em (R$) por Categoria da Cesta Básica")
         df_cesta_categoria = custo_cesta_categoria()
 
     with col5:
-        st.subheader("🔍  Comprometimento Salário Mínimo por Categoria")
+        st.subheader("🔍  Comprometimento (%) Salário Mínimo por Categoria")
         variacao_categoria_por_data(df_cesta_categoria, mes_selecionado_alim, ano_selecionado, tipo=1)
 
     with col6:
